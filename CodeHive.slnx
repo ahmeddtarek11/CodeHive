@@ -1,0 +1,13 @@
+<Solution>
+  <Project Path="src/CodeHive.Api/CodeHive.Api.csproj" />
+  <Project Path="src/Modules/CodeHive.Feed/CodeHive.Feed.csproj" />
+  <Project Path="src/CodeHive.Infrastructure/CodeHive.Infrastructure.csproj" />
+  <Project Path="tests/CodeHive.IntegrationTests/CodeHive.IntegrationTests.csproj" />
+  <Project Path="src/Modules/CodeHive.Notifications/CodeHive.Notifications.csproj" />
+  <Project Path="tests/CodeHive.Posts.Tests/CodeHive.Posts.Tests.csproj" />
+  <Project Path="src/Modules/CodeHive.Posts/CodeHive.Posts.csproj" />
+  <Project Path="src/Modules/CodeHive.Search/CodeHive.Search.csproj" />
+  <Project Path="src/CodeHive.Shared/CodeHive.Shared.csproj" />
+  <Project Path="tests/CodeHive.Users.Tests/CodeHive.Users.Tests.csproj" />
+  <Project Path="src/Modules/CodeHive.Users/CodeHive.Users.csproj" />
+</Solution>

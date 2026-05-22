@@ -1,41 +1,60 @@
+
+
+using MediatR;
+using Scalar.AspNetCore;
+using Serilog;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+//serilog 
+builder.Host.UseSerilog();
+
+
+//openAI
 builder.Services.AddOpenApi();
+
+// infrastructure DbContext, Identity , JWT , Redis , MassTransit 
+//builder.Services.AddInfrastructure(builder.Configuration);
+
+
+// modules
+// builder.Services.AddUserModule();
+// builder.Services.AddPostsModule();
+// builder.Services.AddFeedModule();
+// builder.Services.AddNotificationsModule();
+// builder.Services.AddSearchModules();
+
+// MediatR pipeline 
+//builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior));
+//builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+
+//Api concerns 
+builder.Services.AddOpenApi();
+//builder.Services.AddHealthChecks().AddNpgSql().AddRedis();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
+app.UseExceptionHandler(); // global error handler
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+//app.MapUsersEndpoints();
+//app.MapPostsEndpoints();
+//app.MapFeedEndpoints();
+//app.MapNotificationsEndpoints();
+//app.MapSearchEndpoints();
+app.MapHealthChecks("/health");
+app.MapScalarApiReference();
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+// Configure the HTTP request pipeline.
+//if (app.Environment.IsDevelopment())
+
+
+
+

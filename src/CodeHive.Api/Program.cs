@@ -1,23 +1,23 @@
 
-
-using MediatR;
+using CodeHive.Api.Middlewares;
+using CodeHive.Infrastructure;
+using CodeHive.Shared.Behaviors;
 using Scalar.AspNetCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Serilog
+builder.Host.UseSerilog((ctx, cfg) =>
+    cfg.ReadFrom.Configuration(ctx.Configuration)
+       .Enrich.FromLogContext()
+       .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+       .WriteTo.File("logs/CodeHive.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 7));
 
-//serilog 
-builder.Host.UseSerilog();
+// infrastructure: JWT auth + token service (DbContext, Identity, Redis, MassTransit later)
+builder.Services.AddInfrastructure(builder.Configuration);
 
-
-//openAI
-builder.Services.AddOpenApi();
-
-// infrastructure DbContext, Identity , JWT , Redis , MassTransit 
-//builder.Services.AddInfrastructure(builder.Configuration);
-
-
+builder.Services.AddExceptionHandler<ExceptionHandlingMiddleware>();
 // modules
 // builder.Services.AddUserModule();
 // builder.Services.AddPostsModule();
@@ -25,21 +25,24 @@ builder.Services.AddOpenApi();
 // builder.Services.AddNotificationsModule();
 // builder.Services.AddSearchModules();
 
-// MediatR pipeline 
-//builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior));
-//builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+// MediatR — scan module assemblies here as they are built
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
+    cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+});
 
-//Api concerns 
+// API concerns
 builder.Services.AddOpenApi();
-//builder.Services.AddHealthChecks().AddNpgSql().AddRedis();
 
 var app = builder.Build();
 
-app.UseExceptionHandler(); // global error handler
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRateLimiter();
+//app.UseRateLimiter(); // TODO: add AddRateLimiter() when rate limiting is ready
 
 //app.MapUsersEndpoints();
 //app.MapPostsEndpoints();
@@ -47,14 +50,8 @@ app.UseRateLimiter();
 //app.MapNotificationsEndpoints();
 //app.MapSearchEndpoints();
 app.MapHealthChecks("/health");
+app.MapOpenApi();
 app.MapScalarApiReference();
 
-
 app.Run();
-
-// Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-
-
-
 

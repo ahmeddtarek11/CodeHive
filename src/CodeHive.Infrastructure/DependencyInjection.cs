@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using CodeHive.Infrastructure.Data;
 using CodeHive.Infrastructure.Identity;
@@ -14,8 +15,12 @@ namespace CodeHive.Infrastructure;
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(
-        this IServiceCollection services, IConfiguration configuration)
+        this IServiceCollection services,
+        IConfiguration configuration,
+        params Assembly[] moduleAssemblies)
     {
+        services.AddSingleton<IReadOnlyCollection<Assembly>>(moduleAssemblies);
+
         services
             .AddPersistence(configuration)
             .AddIdentityServices()
@@ -44,10 +49,12 @@ public static class DependencyInjection
             .AddIdentityCore<ApplicationUser>(opts =>
             {
                 opts.Password.RequireDigit = true;
-                opts.Password.RequiredLength = 8;
+                opts.Password.RequiredLength = 4;
                 opts.Password.RequireNonAlphanumeric = false;
                 opts.Password.RequireUppercase = false;
+                opts.Password.RequireLowercase =false;
                 opts.User.RequireUniqueEmail = true;
+                
             })
             .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<CodeHiveDbContext>()
@@ -91,6 +98,32 @@ public static class DependencyInjection
                     ClockSkew = TimeSpan.Zero
                 };
             });
+
+            var OauthSettings = configuration.GetSection("OAuth").Get<OAuthSettings>();
+            services.Configure<OAuthSettings>(configuration.GetSection("OAuth"));
+
+
+            services.AddAuthentication()
+            .AddGoogle(options =>
+            {
+                options.ClientId = OauthSettings!.Google.ClientId;
+                options.ClientSecret = OauthSettings!.Google.ClientSecret;
+                options.CallbackPath = "/api/v1/auth/oauth/google/callback";
+
+                 options.SignInScheme  = IdentityConstants.ExternalScheme;
+
+
+            }).AddGitHub(opts =>
+            {
+                opts.ClientId      = OauthSettings!.GitHub.ClientId;
+                opts.ClientSecret  = OauthSettings.GitHub.ClientSecret;
+                opts.CallbackPath  = "/api/v1/auth/oauth/github/callback";
+                opts.SignInScheme  = IdentityConstants.ExternalScheme;
+
+                opts.Scope.Add("user:email");
+            });
+
+
 
         services.AddAuthorization();
         return services;

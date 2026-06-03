@@ -21,6 +21,12 @@ public static class ResultExtensions
             var c when c.EndsWith(".NotFound", StringComparison.Ordinal) => Results.NotFound(error),
             var c when c.EndsWith(".Forbidden", StringComparison.Ordinal) => Results.Forbid(),
             var c when c.EndsWith(".Unauthorized", StringComparison.Ordinal) => Results.Unauthorized(),
+            var c when c.EndsWith(".InvalidCredentials", StringComparison.Ordinal) => Results.Unauthorized(),
+            var c when c.EndsWith(".TokenInvalid", StringComparison.Ordinal) => Results.Unauthorized(),
+            var c when c.EndsWith(".TokenExpired", StringComparison.Ordinal) => Results.Unauthorized(),
+            var c when c.EndsWith(".Taken", StringComparison.Ordinal) => Results.Conflict(error),
+            var c when c.EndsWith(".AlreadyExists", StringComparison.Ordinal) => Results.Conflict(error),
+            var c when c.EndsWith(".AlreadyFollowing", StringComparison.Ordinal) => Results.Conflict(error),
             _ => Results.BadRequest(error)
         };
 }

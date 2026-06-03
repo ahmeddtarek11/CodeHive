@@ -1,3 +1,4 @@
+using System.Reflection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,23 +16,30 @@ public class CodeHiveDbContext
     : IdentityDbContext<ApplicationUser ,IdentityRole<Guid> ,Guid > 
 {
     private readonly IMediator _mediator;
-    public CodeHiveDbContext(DbContextOptions<CodeHiveDbContext> options , IMediator mediator)
+    private readonly IReadOnlyCollection<Assembly> _moduleAssemblies;
+
+    public CodeHiveDbContext(
+        DbContextOptions<CodeHiveDbContext> options,
+        IMediator mediator,
+        IReadOnlyCollection<Assembly> moduleAssemblies)
         : base(options)
     {
-        _mediator  = mediator ;
+        _mediator = mediator;
+        _moduleAssemblies = moduleAssemblies;
     }
 
-    // public DbSet<post>
-    // 
-    //   ............. dbsets
-
+   
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
-        // Each module registers its EF configs automatically from its assembly.
-        // You will add more lines here as you create modules.
+
         builder.ApplyConfigurationsFromAssembly(typeof(CodeHiveDbContext).Assembly);
+
+        foreach (var assembly in _moduleAssemblies)
+        {
+            builder.ApplyConfigurationsFromAssembly(assembly);
+        }
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken ct = default)

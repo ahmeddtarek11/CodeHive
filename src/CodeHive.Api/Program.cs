@@ -2,6 +2,8 @@
 using CodeHive.Api.Middlewares;
 using CodeHive.Infrastructure;
 using CodeHive.Shared.Behaviors;
+using CodeHive.Users;
+using CodeHive.Users.Domain.Data.Config;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -15,11 +17,11 @@ builder.Host.UseSerilog((ctx, cfg) =>
        .WriteTo.File("logs/CodeHive.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 7));
 
 // infrastructure: JWT auth + token service (DbContext, Identity, Redis, MassTransit later)
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration, typeof(FollowConfigurations).Assembly);
 
 builder.Services.AddExceptionHandler<ExceptionHandlingMiddleware>();
 // modules
-// builder.Services.AddUserModule();
+ builder.Services.AddUsersModule();
 // builder.Services.AddPostsModule();
 // builder.Services.AddFeedModule();
 // builder.Services.AddNotificationsModule();
@@ -35,6 +37,9 @@ builder.Services.AddMediatR(cfg =>
 
 // API concerns
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
+
+
 
 var app = builder.Build();
 
@@ -44,7 +49,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 //app.UseRateLimiter(); // TODO: add AddRateLimiter() when rate limiting is ready
 
-//app.MapUsersEndpoints();
+app.MapUsersEndpoints();
 //app.MapPostsEndpoints();
 //app.MapFeedEndpoints();
 //app.MapNotificationsEndpoints();

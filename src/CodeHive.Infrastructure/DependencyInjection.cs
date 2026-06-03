@@ -76,14 +76,23 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        
-
         var jwt = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
             ?? throw new InvalidOperationException(
                 $"Missing '{JwtSettings.SectionName}' configuration section.");
 
-        services
-            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        var oauthSettings = configuration.GetSection("OAuth").Get<OAuthSettings>()
+            ?? throw new InvalidOperationException(
+                "Missing 'OAuth' configuration section.");
+
+        services.Configure<OAuthSettings>(configuration.GetSection("OAuth"));
+
+        var authBuilder = services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        });
+
+        authBuilder
             .AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -97,30 +106,22 @@ public static class DependencyInjection
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
                 };
-            });
-
-            var OauthSettings = configuration.GetSection("OAuth").Get<OAuthSettings>();
-            services.Configure<OAuthSettings>(configuration.GetSection("OAuth"));
-
-
-            services.AddAuthentication()
+            })
+            .AddCookie(IdentityConstants.ExternalScheme)
             .AddGoogle(options =>
             {
-                options.ClientId = OauthSettings!.Google.ClientId;
-                options.ClientSecret = OauthSettings!.Google.ClientSecret;
-                options.CallbackPath = "/api/v1/auth/oauth/google/callback";
-
-                 options.SignInScheme  = IdentityConstants.ExternalScheme;
-
-
-            }).AddGitHub(opts =>
+                options.ClientId = oauthSettings.Google.ClientId;
+                options.ClientSecret = oauthSettings.Google.ClientSecret;
+                options.CallbackPath = "/signin-google";
+                options.SignInScheme = IdentityConstants.ExternalScheme;
+            })
+            .AddGitHub(options =>
             {
-                opts.ClientId      = OauthSettings!.GitHub.ClientId;
-                opts.ClientSecret  = OauthSettings.GitHub.ClientSecret;
-                opts.CallbackPath  = "/api/v1/auth/oauth/github/callback";
-                opts.SignInScheme  = IdentityConstants.ExternalScheme;
-
-                opts.Scope.Add("user:email");
+                options.ClientId = oauthSettings.GitHub.ClientId;
+                options.ClientSecret = oauthSettings.GitHub.ClientSecret;
+                options.CallbackPath = "/signin-github";
+                options.SignInScheme = IdentityConstants.ExternalScheme;
+                options.Scope.Add("user:email");
             });
 
 

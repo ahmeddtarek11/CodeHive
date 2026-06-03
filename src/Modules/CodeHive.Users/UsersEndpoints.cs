@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using CodeHive.Infrastructure.Identity;
 using CodeHive.Shared.Extensions;
 using CodeHive.Shared.Responses;
 using CodeHive.Users.Application.Commands.Follow;
@@ -11,12 +12,15 @@ using CodeHive.Users.Application.Commands.UpdateProfile;
 using CodeHive.Users.Application.Queries.GetFollowers;
 using CodeHive.Users.Application.Queries.GetFollowing;
 using CodeHive.Users.Application.Queries.GetProfile;
+using CodeHive.Users.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Authentication;
 using CodeHive.Shared;
+using Microsoft.Extensions.Options;
 
 namespace CodeHive.Users;
 
@@ -28,11 +32,10 @@ public static class UsersEndpoints
         auth.MapPost("/register", Register).AllowAnonymous();
         auth.MapPost("/login", Login).AllowAnonymous();
         auth.MapPost("/refresh", Refresh).AllowAnonymous();
-        auth.MapGet("/login/google" ,GoogleLogin).AllowAnonymous();
-        auth.MapGet("/oauth/google/callback" , GoogleAuth).AllowAnonymous();
-
-
-
+        auth.MapGet("/login/google", GoogleLogin).AllowAnonymous();
+        auth.MapGet("/oauth/google/callback", GoogleAuth).AllowAnonymous();
+        auth.MapGet("/login/github", GitHubLogin).AllowAnonymous();
+        auth.MapGet("/oauth/github/callback", GitHubAuth).AllowAnonymous();
 
         var users = app.MapGroup("/api/v1/users").WithTags("Users");
         users.MapGet("/{username}", GetProfile).AllowAnonymous();
@@ -45,20 +48,102 @@ public static class UsersEndpoints
         return app;
     }
 
-    private static async Task GoogleAuth(HttpContext context)
-    {
-        throw new NotImplementedException();
-    }
-
-
-    private static async Task<IResult> GoogleLogin(HttpContext context)
+    private static IResult GoogleLogin()
     {
         var properties = new AuthenticationProperties
         {
             RedirectUri = "/api/v1/auth/oauth/google/callback"
         };
 
-        return Results.Challenge(properties ,["Google"]);
+        return Results.Challenge(properties, ["Google"]);
+    }
+
+    private static IResult GitHubLogin()
+    {
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = "/api/v1/auth/oauth/github/callback"
+        };
+
+        return Results.Challenge(properties, ["GitHub"]);
+    }
+
+    private static Task<IResult> GoogleAuth(
+        HttpContext context,
+        IExternalAuthService externalAuth,
+        IOptions<OAuthSettings> oauthSettings)
+    {
+        return HandleExternalAuthCallback(
+            context,
+            externalAuth,
+            oauthSettings,
+            provider: "Google",
+            avatarClaimType: "urn:google:picture");
+    }
+
+    private static Task<IResult> GitHubAuth(
+        HttpContext context,
+        IExternalAuthService externalAuth,
+        IOptions<OAuthSettings> oauthSettings)
+    {
+        return HandleExternalAuthCallback(
+            context,
+            externalAuth,
+            oauthSettings,
+            provider: "GitHub",
+            avatarClaimType: "urn:github:avatar_url");
+    }
+
+    private static async Task<IResult> HandleExternalAuthCallback(
+        HttpContext context,
+        IExternalAuthService externalAuth,
+        IOptions<OAuthSettings> oauthSettings,
+        string provider,
+        string avatarClaimType)
+    {
+        try
+        {
+            var authResult = await context.AuthenticateAsync(IdentityConstants.ExternalScheme);
+            if (!authResult.Succeeded || authResult.Principal is null)
+            {
+                return Results.BadRequest("OAuth authentication failed.");
+            }
+
+            var principal = authResult.Principal;
+            var email = principal.FindFirstValue(ClaimTypes.Email);
+            var providerKey = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var displayName = principal.FindFirstValue(ClaimTypes.Name) ?? email;
+            var avatarUrl = principal.FindFirstValue(avatarClaimType);
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(providerKey))
+            {
+                return Results.BadRequest("OAuth authentication failed.");
+            }
+
+            var result = await externalAuth.HandleExternalLoginAsync(
+                provider,
+                providerKey,
+                email,
+                displayName ?? email,
+                avatarUrl,
+                context.RequestAborted);
+
+            if (result.IsFailure)
+            {
+                return result.ToApiResult();
+            }
+
+            var dto = result.Value;
+            var redirectUrl = $"{oauthSettings.Value.FrontendCallbackUrl}" +
+                              $"?access_token={Uri.EscapeDataString(dto.AccessToken)}" +
+                              $"&refresh_token={Uri.EscapeDataString(dto.RefreshToken)}";
+
+            return Results.Redirect(redirectUrl);
+        }
+        finally
+        {
+            await context.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
     }
 
 

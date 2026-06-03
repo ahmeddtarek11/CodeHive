@@ -121,7 +121,7 @@ namespace CodeHive.Infrastructure.Migrations
 
                     b.HasIndex("FolloweeId");
 
-                    b.ToTable("Follow");
+                    b.ToTable("Follow", (string)null);
                 });
 
             modelBuilder.Entity("CodeHive.Users.Domain.Errors.Entities.RefreshToken", b =>

@@ -70,18 +70,18 @@ public class ExternalAuthService : IExternalAuthService
 
 
         var accessToken = _tokenService.GenerateAccessToken(user.Id ,user.Email! , UserRoles);
-        var (rawToken, Expiration) = _tokenService.CreateRefreshToken();
+        var refreshToken = _tokenService.CreateRefreshToken();
         
         _dbContext.Set<RefreshTokenEntity>().Add(new RefreshTokenEntity
         {
             UserId = user.Id,
-            TokenHash = HashRefreshToken(rawToken),
-            ExpiresAt = Expiration
+            TokenHash = HashRefreshToken(refreshToken.Value),
+            ExpiresAt = refreshToken.ExpiresAtUtc
         });
 
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(ct);
 
-        return new AuthTokensDto(accessToken.Value ,rawToken ,Expiration);
+        return new AuthTokensDto(accessToken.Value, refreshToken.Value, accessToken.ExpiresAtUtc);
 
         
     }

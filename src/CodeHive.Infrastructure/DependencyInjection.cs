@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using CodeHive.Infrastructure.Caching;
 using CodeHive.Infrastructure.Data;
 using CodeHive.Infrastructure.Identity;
 using CodeHive.Shared.Interfaces.Identity;
@@ -9,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 
 namespace CodeHive.Infrastructure;
 
@@ -26,7 +28,19 @@ public static class DependencyInjection
             .AddIdentityServices()
             .AddJwtAuthentication(configuration);
 
+
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = configuration.GetConnectionString("Redis");
+        });
+
+        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(configuration.GetConnectionString("Redis")!));
+        services.AddSingleton<ICacheService , RedisCacheService>();
+
+
         return services;
+
+
     }
 
     private static IServiceCollection AddPersistence(

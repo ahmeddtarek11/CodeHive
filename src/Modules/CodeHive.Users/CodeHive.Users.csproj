@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\CodeHive.Shared\CodeHive.Shared.csproj" />
     <ProjectReference Include="..\..\CodeHive.Infrastructure\CodeHive.Infrastructure.csproj" />
+    <ProjectReference Include="..\CodeHive.Posts\CodeHive.Posts.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

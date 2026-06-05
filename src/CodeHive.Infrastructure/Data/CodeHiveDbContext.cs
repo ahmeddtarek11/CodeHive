@@ -34,7 +34,7 @@ public class CodeHiveDbContext
     {
         base.OnModelCreating(builder);
 
-        builder.ApplyConfigurationsFromAssembly(typeof(CodeHiveDbContext).Assembly);
+       // builder.ApplyConfigurationsFromAssembly(typeof(CodeHiveDbContext).Assembly);
 
         foreach (var assembly in _moduleAssemblies)
         {

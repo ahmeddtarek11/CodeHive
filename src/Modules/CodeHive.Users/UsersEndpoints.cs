@@ -12,6 +12,7 @@ using CodeHive.Users.Application.Commands.UpdateProfile;
 using CodeHive.Users.Application.Queries.GetFollowers;
 using CodeHive.Users.Application.Queries.GetFollowing;
 using CodeHive.Users.Application.Queries.GetProfile;
+using CodeHive.Posts.Application.Queries.GetBookmarks;
 using CodeHive.Users.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -28,7 +29,7 @@ public static class UsersEndpoints
 {
     public static IEndpointRouteBuilder MapUsersEndpoints(this IEndpointRouteBuilder app)
     {
-        var auth = app.MapGroup("/api/v1/auth").WithTags("Auth");
+        var auth = app.MapGroup("/api/v1/auth").WithTags("Auth").RequireRateLimiting("auth");
         auth.MapPost("/register", Register).AllowAnonymous();
         auth.MapPost("/login", Login).AllowAnonymous();
         auth.MapPost("/refresh", Refresh).AllowAnonymous();
@@ -44,6 +45,7 @@ public static class UsersEndpoints
         users.MapGet("/{id:guid}/followers", GetFollowers).AllowAnonymous();
         users.MapGet("/{id:guid}/following", GetFollowing).AllowAnonymous();
         users.MapPut("/me", UpdateProfile).RequireAuthorization();
+        users.MapGet("/me/bookmarks", GetBookmarks).RequireAuthorization();
 
         return app;
     }
@@ -94,57 +96,7 @@ public static class UsersEndpoints
             avatarClaimType: "urn:github:avatar_url");
     }
 
-    private static async Task<IResult> HandleExternalAuthCallback(
-        HttpContext context,
-        IExternalAuthService externalAuth,
-        IOptions<OAuthSettings> oauthSettings,
-        string provider,
-        string avatarClaimType)
-    {
-        try
-        {
-            var authResult = await context.AuthenticateAsync(IdentityConstants.ExternalScheme);
-            if (!authResult.Succeeded || authResult.Principal is null)
-            {
-                return Results.BadRequest("OAuth authentication failed.");
-            }
-
-            var principal = authResult.Principal;
-            var email = principal.FindFirstValue(ClaimTypes.Email);
-            var providerKey = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-            var displayName = principal.FindFirstValue(ClaimTypes.Name) ?? email;
-            var avatarUrl = principal.FindFirstValue(avatarClaimType);
-
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(providerKey))
-            {
-                return Results.BadRequest("OAuth authentication failed.");
-            }
-
-            var result = await externalAuth.HandleExternalLoginAsync(
-                provider,
-                providerKey,
-                email,
-                displayName ?? email,
-                avatarUrl,
-                context.RequestAborted);
-
-            if (result.IsFailure)
-            {
-                return result.ToApiResult();
-            }
-
-            var dto = result.Value;
-            var redirectUrl = $"{oauthSettings.Value.FrontendCallbackUrl}" +
-                              $"?access_token={Uri.EscapeDataString(dto.AccessToken)}" +
-                              $"&refresh_token={Uri.EscapeDataString(dto.RefreshToken)}";
-
-            return Results.Redirect(redirectUrl);
-        }
-        finally
-        {
-            await context.SignOutAsync(IdentityConstants.ExternalScheme);
-        }
-    }
+    
 
 
     private static async Task<IResult> Register(RegisterCommand command, IMediator mediator)
@@ -275,6 +227,28 @@ public static class UsersEndpoints
             ApiResponseFactory.Success("Following fetched successfully", result.Value));
     }
 
+    private static async Task<IResult> GetBookmarks(
+        ClaimsPrincipal user,
+        IMediator mediator,
+        string? cursor = null,
+        int limit = 20)
+    {
+        if (!TryGetUserId(user, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var result = await mediator.Send(new GetBookmarksQuery(userId, cursor, limit));
+
+        if (result.IsFailure)
+        {
+            return result.ToApiResult();
+        }
+
+        return Results.Ok(
+            ApiResponseFactory.Success("Bookmarks fetched successfully", result.Value));
+    }
+
     private static bool TryGetUserId(ClaimsPrincipal user, out Guid userId)
     {
         var userIdValue =
@@ -283,4 +257,71 @@ public static class UsersEndpoints
 
         return Guid.TryParse(userIdValue, out userId);
     }
+
+
+    private static async Task<IResult> HandleExternalAuthCallback(
+        HttpContext context,
+        IExternalAuthService externalAuth,
+        IOptions<OAuthSettings> oauthSettings,
+        string provider,
+        string avatarClaimType)
+    {
+        try
+        {
+            var authResult = await context.AuthenticateAsync(IdentityConstants.ExternalScheme);
+            if (!authResult.Succeeded || authResult.Principal is null)
+            {
+                return Results.BadRequest("OAuth authentication failed.");
+            }
+
+            var principal = authResult.Principal;
+            var email = principal.FindFirstValue(ClaimTypes.Email);
+            var providerKey = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var displayName = principal.FindFirstValue(ClaimTypes.Name) ?? email;
+            var avatarUrl = principal.FindFirstValue(avatarClaimType);
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(providerKey))
+            {
+                return Results.BadRequest("OAuth authentication failed.");
+            }
+
+            var result = await externalAuth.HandleExternalLoginAsync(
+                provider,
+                providerKey,
+                email,
+                displayName ?? email,
+                avatarUrl,
+                context.RequestAborted);
+
+            if (result.IsFailure)
+            {
+                return result.ToApiResult();
+            }
+
+            var dto = result.Value;
+            var redirectUrl = $"{oauthSettings.Value.FrontendCallbackUrl}" +
+                              $"?access_token={Uri.EscapeDataString(dto.AccessToken)}" +
+                              $"&refresh_token={Uri.EscapeDataString(dto.RefreshToken)}";
+
+            return Results.Redirect(redirectUrl);
+        }
+        finally
+        {
+            await context.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
+

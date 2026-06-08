@@ -4,6 +4,10 @@ using CodeHive.Infrastructure.Identity;
 using CodeHive.Users.Domain.Errors;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using CodeHive.Users.UsersEvents;
+using CodeHive.Infrastructure.Data;
+using CodeHive.Infrastructure.Outbox;
+using System.Text.Json;
 
 namespace CodeHive.Users.Application.Commands.Register;
 
@@ -11,13 +15,16 @@ public sealed class RegisterCommandHandler : ICommandHandler<RegisterCommand, Gu
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<RegisterCommandHandler> _logger;
+    private readonly CodeHiveDbContext _dbContext;
 
     public RegisterCommandHandler(
         UserManager<ApplicationUser> userManager,
-        ILogger<RegisterCommandHandler> logger)
+        ILogger<RegisterCommandHandler> logger,
+        CodeHiveDbContext dbContext)
     {
         _userManager = userManager;
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     public async Task<Result<Guid>> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -81,6 +88,17 @@ public sealed class RegisterCommandHandler : ICommandHandler<RegisterCommand, Gu
             user.Id,
             username,
             email);
+
+
+
+        user.RasieDomainEvent(new UserRegisteredEvent(user.Id, user.Email!, user.UserName!, user.DisplayName));
+        // var msg = new UserRegisteredEvent(user.Id, user.Email!, user.UserName!, user.DisplayName);
+        // _dbContext.Set<OutboxMessage>().Add(new OutboxMessage
+        // {
+        //     EventType = typeof(UserRegisteredEvent).AssemblyQualifiedName!,
+        //     Payload = JsonSerializer.Serialize(msg)
+        // });
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return user.Id;
     }

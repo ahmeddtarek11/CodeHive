@@ -13,25 +13,28 @@ public class RedisCacheService(IDistributedCache cache, IConnectionMultiplexer r
     private readonly IDistributedCache _cache = cache;
     private readonly IConnectionMultiplexer _redis = redis;
 
-    public async Task<T?> GetAsync<T>(string key, CancellationToken ct = default) where T : class 
+    public async Task<T?> GetAsync<T>(string key, CancellationToken ct = default) where T : class
     {
-        var bytes = await _cache.GetAsync(key ,ct );
-        if(bytes is null ) return default ;
+        var bytes = await _cache.GetAsync(key, ct);
+        if (bytes is null) return default;
 
         return JsonSerializer.Deserialize<T>(bytes);
 
     }
-    public async Task<T?> SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct = default) where T : class
+    public async Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct = default) where T : class
     {
-        var bytes  = await _cache.GetAsync(key,ct );
-        if(bytes is null ) return null ; 
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(value);
+        await _cache.SetAsync(key, bytes, new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = ttl
+        }, ct);
 
-        return JsonSerializer.Deserialize<T>(bytes);
+
     }
 
 
     public async Task RemoveAsync(string key, CancellationToken ct = default) => await _cache.RemoveAsync(key, ct);
-    
+
 
 
 
@@ -39,12 +42,12 @@ public class RedisCacheService(IDistributedCache cache, IConnectionMultiplexer r
     {
         var server = _redis.GetServer(_redis.GetEndPoints().First());
         var keys = server.Keys(pattern: $"{prefix}*").ToArray();
-        if(keys.Length > 0)
+        if (keys.Length > 0)
         {
             var db = _redis.GetDatabase();
             await db.KeyDeleteAsync(keys);
         }
     }
 
-    
+
 }

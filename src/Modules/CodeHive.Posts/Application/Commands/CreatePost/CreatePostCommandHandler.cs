@@ -1,18 +1,28 @@
+using CodeHive.Infrastructure.Caching;
 using CodeHive.Infrastructure.Data;
+using CodeHive.Infrastructure.Identity;
+using CodeHive.Posts.Domain.Dtos;
 using CodeHive.Posts.Domain.Entities;
+using CodeHive.Posts.PostsEvents;
 using CodeHive.Shared;
 using CodeHive.Shared.Cqrs;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
 namespace CodeHive.Posts.Application.Commands.CreatePost;
 
 public sealed class CreatePostCommandHandler : ICommandHandler<CreatePostCommand, Guid>
 {
     private readonly CodeHiveDbContext _dbContext;
+    private readonly ICacheService _cache;
+    
 
-    public CreatePostCommandHandler(CodeHiveDbContext dbContext)
+    public CreatePostCommandHandler(CodeHiveDbContext dbContext, ICacheService cache )
     {
         _dbContext = dbContext;
+        _cache = cache;
+        
     }
 
     public async Task<Result<Guid>> Handle(CreatePostCommand request, CancellationToken cancellationToken)
@@ -58,7 +68,34 @@ public sealed class CreatePostCommandHandler : ICommandHandler<CreatePostCommand
             _dbContext.Set<PostTag>().AddRange(postTags);
         }
 
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u=> u.Id ==post.AuthorId);
+        post.RasieDomainEvent(new PostCreatedEvent(post.Id , post.AuthorId , user!.UserName!));
+
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+       
+
+
+
+        // Direct query is used to guarantee immediate cache invalidation within the same transaction boundary
+        // Event-driven approach is avoided here to prevent stale feed visibility caused by async propagation delays
+        // invalidating data this way is valid in this stage , but when a user has 100,000 followerS for example 
+        // this becomes slow 
+        // ------- to be implemented fanout problem background job in the next stage -------- // 
+
+            var followerIds = await _dbContext.Database
+            .SqlQuery<Guid>(
+                $"""
+                SELECT "FollowerId"
+                FROM "Follow"
+                WHERE "FolloweeId" = {request.AuthorId}
+                """)
+            .ToListAsync(cancellationToken);
+
+         foreach (var followerId in followerIds)
+            await _cache.RemoveByPrefixAsync(CacheKeys.FeedPrefix(followerId), cancellationToken);
+
+
 
         return post.Id;
     }

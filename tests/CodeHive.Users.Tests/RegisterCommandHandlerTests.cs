@@ -1,3 +1,4 @@
+using CodeHive.Infrastructure.Data;
 using CodeHive.Infrastructure.Identity;
 using CodeHive.Users.Application.Commands.Register;
 using CodeHive.Users.Domain.Errors;
@@ -11,12 +12,14 @@ public sealed class RegisterCommandHandlerTests
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RegisterCommandHandler _handler;
+    private readonly CodeHiveDbContext _dbContext;
 
     public RegisterCommandHandlerTests()
     {
         _userManager = TestHelpers.CreateUserManager();
         var logger = Substitute.For<ILogger<RegisterCommandHandler>>();
-        _handler = new RegisterCommandHandler(_userManager, logger);
+        _dbContext = TestHelpers.CreateDbContext();
+        _handler = new RegisterCommandHandler(_userManager, logger , _dbContext);
     }
 
     [Fact]

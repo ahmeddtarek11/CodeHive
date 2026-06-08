@@ -3,7 +3,9 @@ using System.Text;
 using CodeHive.Infrastructure.Caching;
 using CodeHive.Infrastructure.Data;
 using CodeHive.Infrastructure.Identity;
+using CodeHive.Infrastructure.Outbox;
 using CodeHive.Shared.Interfaces.Identity;
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +24,7 @@ public static class DependencyInjection
         params Assembly[] moduleAssemblies)
     {
         services.AddSingleton<IReadOnlyCollection<Assembly>>(moduleAssemblies);
+        services.AddHostedService<OutboxProcessor>();
 
         services
             .AddPersistence(configuration)
@@ -32,6 +35,20 @@ public static class DependencyInjection
         services.AddStackExchangeRedisCache(options =>
         {
             options.Configuration = configuration.GetConnectionString("Redis");
+        });
+
+        services.AddMassTransit(cfg =>
+        {
+            cfg.AddConsumers(typeof(DependencyInjection).Assembly);
+
+            cfg.UsingRabbitMq((ctx, rabbitCfg)=>
+            {
+                rabbitCfg.Host(configuration.GetConnectionString("RabbitMq"));
+
+                   // MassTransit auto-creates exchanges and queues based on consumer types.
+                  // This line tells it to do that for all registered consumers.
+                    rabbitCfg.ConfigureEndpoints(ctx);
+            });
         });
 
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(configuration.GetConnectionString("Redis")!));

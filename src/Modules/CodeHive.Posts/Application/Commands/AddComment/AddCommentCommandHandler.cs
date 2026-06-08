@@ -1,6 +1,7 @@
 using CodeHive.Infrastructure.Data;
 using CodeHive.Posts.Domain.Entities;
 using CodeHive.Posts.Domain.Errors;
+using CodeHive.Posts.PostsEvents;
 using CodeHive.Shared;
 using CodeHive.Shared.Cqrs;
 using Microsoft.EntityFrameworkCore;
@@ -18,13 +19,19 @@ public sealed class AddCommentCommandHandler : ICommandHandler<AddCommentCommand
 
     public async Task<Result<Guid>> Handle(AddCommentCommand request, CancellationToken cancellationToken)
     {
-        var postExists = await _dbContext.Set<Post>()
-            .AnyAsync(post => post.Id == request.PostId, cancellationToken);
+        var post = await _dbContext.Set<Post>()
+            .Select(p => new { p.Id, p.AuthorId })
+            .FirstOrDefaultAsync(p => p.Id == request.PostId, cancellationToken);
 
-        if (!postExists)
+        if (post is null)
         {
             return PostErrors.NotFound;
         }
+
+        var commentAuthorUsername = await _dbContext.Users
+            .Where(u => u.Id == request.AuthorId)
+            .Select(u => u.UserName)
+            .FirstOrDefaultAsync(cancellationToken) ?? "Unknown";
 
         if (request.ParentCommentId.HasValue)
         {
@@ -51,6 +58,8 @@ public sealed class AddCommentCommandHandler : ICommandHandler<AddCommentCommand
         };
 
         _dbContext.Set<Comment>().Add(comment);
+
+        comment.RasieDomainEvent(new CommentAddedEvent(comment.AuthorId, commentAuthorUsername, comment.PostId, post.AuthorId, comment.ParentCommentId));
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 

@@ -1,3 +1,4 @@
+using CodeHive.Infrastructure.Caching;
 using CodeHive.Infrastructure.Data;
 using CodeHive.Posts.Domain.Dtos;
 using CodeHive.Posts.Domain.Entities;
@@ -10,16 +11,23 @@ namespace CodeHive.Feed.Application.Queries.GetTrending;
 public sealed class GetTrendingPostsQueryHandler : IQueryHandler<GetTrendingPostsQuery, List<PostSummaryDto>>
 {
     private readonly CodeHiveDbContext _dbContext;
+     private readonly ICacheService _cache;
 
-    public GetTrendingPostsQueryHandler(CodeHiveDbContext dbContext)
+    public GetTrendingPostsQueryHandler(CodeHiveDbContext dbContext , ICacheService cache)
     {
         _dbContext = dbContext;
+        _cache = cache;
     }
 
     public async Task<Result<List<PostSummaryDto>>> Handle(
         GetTrendingPostsQuery request,
         CancellationToken cancellationToken)
     {
+
+        var cacheKey = CacheKeys.Trending();
+        var cached = await _cache.GetAsync<List<PostSummaryDto>>(cacheKey , cancellationToken );
+        if(cached is not null ) return cached ;
+
         var since = DateTime.UtcNow.AddHours(-24);
 
         var trendingPostIds = await (
@@ -75,6 +83,8 @@ public sealed class GetTrendingPostsQueryHandler : IQueryHandler<GetTrendingPost
             .Where(byId.ContainsKey)
             .Select(id => byId[id])
             .ToList();
+
+            await _cache.SetAsync(cacheKey , result ,TimeSpan.FromMinutes(10));
 
         return result;
     }

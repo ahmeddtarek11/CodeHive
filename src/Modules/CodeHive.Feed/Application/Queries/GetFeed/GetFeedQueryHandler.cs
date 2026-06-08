@@ -1,4 +1,5 @@
 using System.Globalization;
+using CodeHive.Infrastructure.Caching;
 using CodeHive.Infrastructure.Data;
 using CodeHive.Posts.Domain.Dtos;
 using CodeHive.Posts.Domain.Entities;
@@ -6,6 +7,7 @@ using CodeHive.Shared;
 using CodeHive.Shared.Cqrs;
 using CodeHive.Users.Domain.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using FollowEntity = CodeHive.Users.Domain.Data.Entities.Follow;
 
 namespace CodeHive.Feed.Application.Queries.GetFeed;
@@ -13,16 +15,24 @@ namespace CodeHive.Feed.Application.Queries.GetFeed;
 public sealed class GetFeedQueryHandler : IQueryHandler<GetFeedQuery, CursorPage<PostSummaryDto>>
 {
     private readonly CodeHiveDbContext _dbContext;
+    private readonly ICacheService _cache;
 
-    public GetFeedQueryHandler(CodeHiveDbContext dbContext)
+    public GetFeedQueryHandler(CodeHiveDbContext dbContext, ICacheService cache)
     {
         _dbContext = dbContext;
+        _cache = cache;
     }
 
     public async Task<Result<CursorPage<PostSummaryDto>>> Handle(
         GetFeedQuery request,
         CancellationToken cancellationToken)
     {
+
+        var cacheKey = CacheKeys.feed(request.CurrentUserId ,request.Cursor);
+        var cached = await _cache.GetAsync<CursorPage<PostSummaryDto>>(cacheKey , cancellationToken );
+        if(cached is not null ) return cached ;
+
+
         var cursor = ParseCursor(request.Cursor);
         if (request.Cursor is not null && cursor is null)
         {
@@ -75,10 +85,14 @@ public sealed class GetFeedQueryHandler : IQueryHandler<GetFeedQuery, CursorPage
             ? pageItems[^1].CreatedAt.ToString("O")
             : null;
 
-        return new CursorPage<PostSummaryDto>(
+        var responsePage = new CursorPage<PostSummaryDto>(
             pageItems.Select(row => row.Post).ToList(),
             nextCursor,
             hasMore);
+
+        await _cache.SetAsync(cacheKey,responsePage,TimeSpan.FromMinutes(5), cancellationToken);
+
+        return responsePage ;
     }
 
     private static DateTime? ParseCursor(string? cursor)

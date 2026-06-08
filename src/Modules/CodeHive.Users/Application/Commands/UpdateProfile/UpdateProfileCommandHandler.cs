@@ -1,3 +1,4 @@
+using CodeHive.Infrastructure.Caching;
 using CodeHive.Infrastructure.Data;
 using CodeHive.Infrastructure.Identity;
 using CodeHive.Shared;
@@ -17,15 +18,18 @@ public sealed class UpdateProfileCommandHandler : ICommandHandler<UpdateProfileC
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly CodeHiveDbContext _dbContext;
     private readonly ILogger<UpdateProfileCommandHandler> _logger;
+    private readonly ICacheService _cache;
 
     public UpdateProfileCommandHandler(
         UserManager<ApplicationUser> userManager,
         CodeHiveDbContext dbContext,
-        ILogger<UpdateProfileCommandHandler> logger)
+        ILogger<UpdateProfileCommandHandler> logger,
+        ICacheService cache)
     {
         _userManager = userManager;
         _dbContext = dbContext;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task<Result<UserProfileDto>> Handle(
@@ -90,6 +94,8 @@ public sealed class UpdateProfileCommandHandler : ICommandHandler<UpdateProfileC
             followersCount,
             followingCount,
             user.CreatedAt);
+
+         await _cache.RemoveAsync(CacheKeys.UserProfile(user.UserName!.ToLowerInvariant()), cancellationToken);
 
         _logger.LogInformation(
             "Profile updated successfully for UserId={UserId}.",

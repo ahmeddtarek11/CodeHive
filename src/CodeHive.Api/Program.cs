@@ -15,6 +15,7 @@ using System.Text.Json;
 using Scalar.AspNetCore;
 using Serilog;
 using Microsoft.AspNetCore.RateLimiting;
+using CodeHive.Notifications.Domain.Config;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,12 +30,13 @@ builder.Host.UseSerilog((ctx, cfg) =>
 // infrastructure: JWT auth + token service (DbContext, Identity, Redis, MassTransit later)
 builder.Services.AddInfrastructure(builder.Configuration, 
     typeof(FollowConfigurations).Assembly ,
-    typeof(PostConfiguration).Assembly
+    typeof(PostConfiguration).Assembly ,
+    typeof(NotificationConfiguration).Assembly
     );
 
 builder.Services.AddExceptionHandler<ExceptionHandlingMiddleware>();
 // modules
- builder.Services.AddUsersModule();
+builder.Services.AddUsersModule();
 builder.Services.AddPostsModule();
 builder.Services.AddFeedModule();
 // builder.Services.AddNotificationsModule();

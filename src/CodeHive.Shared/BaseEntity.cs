@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CodeHive.Shared.Interfaces;
 using MediatR;
 
 namespace CodeHive.Shared;
 
-public abstract class BaseEntity
+public abstract class BaseEntity : IHasDomainEvents
 {
     public Guid Id { get; init; } =  Guid.NewGuid();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

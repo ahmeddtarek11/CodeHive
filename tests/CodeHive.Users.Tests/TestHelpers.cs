@@ -44,6 +44,6 @@ internal static class TestHelpers
         var mediator = Substitute.For<IMediator>();
         var moduleAssemblies = new[] { typeof(RefreshTokenConfiguration).Assembly };
 
-        return new CodeHiveDbContext(options, mediator, moduleAssemblies);
+        return new CodeHiveDbContext(options, moduleAssemblies);
     }
 }

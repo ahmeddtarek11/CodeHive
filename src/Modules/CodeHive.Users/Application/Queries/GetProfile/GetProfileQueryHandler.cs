@@ -1,3 +1,4 @@
+using CodeHive.Infrastructure.Caching;
 using CodeHive.Infrastructure.Data;
 using CodeHive.Shared;
 using CodeHive.Shared.Cqrs;
@@ -12,14 +13,17 @@ namespace CodeHive.Users.Application.Queries.GetProfile;
 public sealed class GetProfileQueryHandler : IQueryHandler<GetProfileQuery, UserProfileDto>
 {
     private readonly CodeHiveDbContext _dbContext;
+    private readonly ICacheService _cache;
     private readonly ILogger<GetProfileQueryHandler> _logger;
 
     public GetProfileQueryHandler(
         CodeHiveDbContext dbContext,
-        ILogger<GetProfileQueryHandler> logger)
+        ILogger<GetProfileQueryHandler> logger ,
+        ICacheService cache)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task<Result<UserProfileDto>> Handle(
@@ -27,6 +31,10 @@ public sealed class GetProfileQueryHandler : IQueryHandler<GetProfileQuery, User
         CancellationToken cancellationToken)
     {
         var username = request.Username.Trim().ToLowerInvariant();
+
+        var cacheKey = CacheKeys.UserProfile(username);
+        var cached = await _cache.GetAsync<UserProfileDto>(cacheKey, cancellationToken);
+        if(cached is not null ) return cached;
 
         _logger.LogInformation(
             "Profile query started for Username={Username}.",
@@ -59,6 +67,9 @@ public sealed class GetProfileQueryHandler : IQueryHandler<GetProfileQuery, User
             "Profile query succeeded for Username={Username}, UserId={UserId}.",
             username,
             dto.Id);
+
+
+        await _cache.SetAsync(cacheKey , dto , TimeSpan.FromMinutes(30));
 
         return dto;
     }

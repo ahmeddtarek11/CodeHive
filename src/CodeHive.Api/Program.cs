@@ -3,6 +3,7 @@ using System.Reflection;
 using CodeHive.Api.Middlewares;
 using CodeHive.Feed;
 using CodeHive.Infrastructure;
+using CodeHive.Notifications;
 using CodeHive.Posts;
 using CodeHive.Posts.Domain.Config;
 using CodeHive.Shared.Behaviors;
@@ -39,7 +40,7 @@ builder.Services.AddExceptionHandler<ExceptionHandlingMiddleware>();
 builder.Services.AddUsersModule();
 builder.Services.AddPostsModule();
 builder.Services.AddFeedModule();
-// builder.Services.AddNotificationsModule();
+builder.Services.AddNotificationsModule();
 builder.Services.AddSearchModules();
 
 // MediatR — scan module assemblies here as they are built
@@ -80,7 +81,7 @@ app.UseRateLimiter();
 app.MapUsersEndpoints();
 app.MapPostsEndpoints();
 app.MapFeedEndpoints();
-//app.MapNotificationsEndpoints();
+app.MapNotificationsEndpoints();
 app.MapSearchEndpoints();
 app.MapHealthChecks("/health", new HealthCheckOptions
 {

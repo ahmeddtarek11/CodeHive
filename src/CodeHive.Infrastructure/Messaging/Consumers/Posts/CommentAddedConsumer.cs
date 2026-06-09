@@ -22,6 +22,9 @@ public class CommentAddedConsumer : IConsumer<ICommentAddedEvent>
     public async Task Consume(ConsumeContext<ICommentAddedEvent> context)
     {
        var msg = context.Message;
+
+        if(msg.AuthorId == msg.PostAuthorId) return ;
+
        using var scope = _scopefactory.CreateScope();
        var mediator =  scope.ServiceProvider.GetRequiredService<IMediator>();
 

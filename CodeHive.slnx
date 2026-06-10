@@ -10,4 +10,5 @@
   <Project Path="src/CodeHive.Shared/CodeHive.Shared.csproj" />
   <Project Path="tests/CodeHive.Users.Tests/CodeHive.Users.Tests.csproj" />
   <Project Path="src/Modules/CodeHive.Users/CodeHive.Users.csproj" />
+  <Project Path="src/Modules/CodeHive.Chat/CodeHive.Chat.csproj" />
 </Solution>

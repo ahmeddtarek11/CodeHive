@@ -24,6 +24,7 @@
     <ProjectReference Include="..\Modules\CodeHive.Feed\CodeHive.Feed.csproj" />
     <ProjectReference Include="..\Modules\CodeHive.Notifications\CodeHive.Notifications.csproj" />
     <ProjectReference Include="..\Modules\CodeHive.Search\CodeHive.Search.csproj" />
+    <ProjectReference Include="..\Modules\CodeHive.Chat\CodeHive.Chat.csproj" />
   </ItemGroup>
 
 </Project>

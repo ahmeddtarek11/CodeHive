@@ -19,6 +19,8 @@ using CodeHive.Notifications.Domain.Config;
 using CodeHive.Notifications.Application.SignalR;
 using Microsoft.OpenApi;
 using CodeHive.Api;
+using CodeHive.Chat;
+using CodeHive.Chat.SignalR;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,7 +37,8 @@ builder.Host.UseSerilog((ctx, cfg) =>
 builder.Services.AddInfrastructure(builder.Configuration,
     typeof(FollowConfigurations).Assembly,
     typeof(PostConfiguration).Assembly,
-    typeof(NotificationConfiguration).Assembly
+    typeof(NotificationConfiguration).Assembly,
+    typeof(ChatModule).Assembly
     );
 
 builder.Services.AddExceptionHandler<ExceptionHandlingMiddleware>();
@@ -47,6 +50,8 @@ builder.Services.AddPostsModule();
 builder.Services.AddFeedModule();
 builder.Services.AddNotificationsModule();
 builder.Services.AddSearchModules();
+builder.Services.AddChatModule();
+builder.Services.AddScoped<IChatHubService, ChatHubService>();
 
 // MediatR — scan module assemblies here as they are built
 builder.Services.AddMediatR(cfg =>
@@ -92,12 +97,15 @@ app.UseRateLimiter();
 
 
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<CodeHive.Chat.SignalR.ChatHub>("/hubs/chat");
+
 
 app.MapUsersEndpoints();
 app.MapPostsEndpoints();
 app.MapFeedEndpoints();
 app.MapNotificationsEndpoints();
 app.MapSearchEndpoints();
+app.MapChatEndpoints();
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = WriteHealthCheckResponse

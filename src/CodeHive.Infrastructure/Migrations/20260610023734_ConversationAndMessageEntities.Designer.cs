@@ -3,6 +3,7 @@ using System;
 using CodeHive.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CodeHive.Infrastructure.Migrations
 {
     [DbContext(typeof(CodeHiveDbContext))]
-    partial class CodeHiveDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260610023734_ConversationAndMessageEntities")]
+    partial class ConversationAndMessageEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -37,16 +40,16 @@ namespace CodeHive.Infrastructure.Migrations
                     b.Property<DateTime>("LastMessageAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("LowerUserId_init")
+                    b.Property<Guid>("LowerUserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
                     b.HasIndex("LastMessageAt");
 
-                    b.HasIndex("LowerUserId_init");
+                    b.HasIndex("LowerUserId");
 
-                    b.HasIndex("HigherUserId", "LowerUserId_init")
+                    b.HasIndex("HigherUserId", "LowerUserId")
                         .IsUnique();
 
                     b.ToTable("Conversation");
@@ -582,7 +585,7 @@ namespace CodeHive.Infrastructure.Migrations
 
                     b.HasOne("CodeHive.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
-                        .HasForeignKey("LowerUserId_init")
+                        .HasForeignKey("LowerUserId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
                 });

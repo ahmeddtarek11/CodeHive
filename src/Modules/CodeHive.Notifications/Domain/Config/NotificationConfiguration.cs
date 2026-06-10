@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeHive.Notifications.Domain.Config;
 using CodeHive.Notification.Domain.Entities;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
 
 public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
 {
-    public void Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Notification> builder)
+    public void Configure(EntityTypeBuilder<Notification> builder)
     {
         builder.HasKey(n => n.Id);
 

@@ -1,4 +1,3 @@
-
 using System.Reflection;
 using CodeHive.Api.Middlewares;
 using CodeHive.Feed;
@@ -17,6 +16,10 @@ using Scalar.AspNetCore;
 using Serilog;
 using Microsoft.AspNetCore.RateLimiting;
 using CodeHive.Notifications.Domain.Config;
+using CodeHive.Notifications.Application.SignalR;
+using Microsoft.OpenApi;
+using CodeHive.Api;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,13 +32,15 @@ builder.Host.UseSerilog((ctx, cfg) =>
 
 
 // infrastructure: JWT auth + token service (DbContext, Identity, Redis, MassTransit later)
-builder.Services.AddInfrastructure(builder.Configuration, 
-    typeof(FollowConfigurations).Assembly ,
-    typeof(PostConfiguration).Assembly ,
+builder.Services.AddInfrastructure(builder.Configuration,
+    typeof(FollowConfigurations).Assembly,
+    typeof(PostConfiguration).Assembly,
     typeof(NotificationConfiguration).Assembly
     );
 
 builder.Services.AddExceptionHandler<ExceptionHandlingMiddleware>();
+
+
 // modules
 builder.Services.AddUsersModule();
 builder.Services.AddPostsModule();
@@ -51,19 +56,28 @@ builder.Services.AddMediatR(cfg =>
     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 
-// API concerns
-builder.Services.AddOpenApi();
+// API concerns — BearerSecuritySchemeTransformer adds the JWT security scheme
+// using the Microsoft.OpenApi v2 API that ships with .NET 9/10
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
 builder.Services.AddProblemDetails();
+
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+{
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
 
 builder.Services.AddRateLimiter(options =>
 {
-   options.AddFixedWindowLimiter("auth" ,cfg =>
-   {
-       cfg.PermitLimit = 5 ;
-       cfg.QueueLimit = 0;
-       cfg.Window = TimeSpan.FromMinutes(5);
-   });
-   options.RejectionStatusCode = 429 ;
+    options.AddFixedWindowLimiter("auth", cfg =>
+    {
+        cfg.PermitLimit = 1000000000;
+        cfg.QueueLimit = 0;
+        cfg.Window = TimeSpan.FromMinutes(1);
+    });
+    options.RejectionStatusCode = 429;
 });
 
 
@@ -74,9 +88,10 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.UseRateLimiter();
 
+
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.MapUsersEndpoints();
 app.MapPostsEndpoints();
@@ -88,7 +103,14 @@ app.MapHealthChecks("/health", new HealthCheckOptions
     ResponseWriter = WriteHealthCheckResponse
 });
 app.MapOpenApi();
-app.MapScalarApiReference();
+app.MapScalarApiReference(options =>
+{
+    options.Authentication = new ScalarAuthenticationOptions
+    {
+        PreferredSecuritySchemes = ["Bearer"]
+    };
+        options.AddHttpAuthentication("Bearer", _ => { });
+});
 
 app.Run();
 
@@ -123,5 +145,5 @@ static Task WriteHealthCheckResponse(HttpContext context, HealthReport report)
 
 public partial class Program
 {
-    
+
 }

@@ -6,6 +6,7 @@ using CodeHive.Infrastructure.Identity;
 using CodeHive.Infrastructure.Outbox;
 using CodeHive.Shared.Interfaces.Identity;
 using MassTransit;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -136,6 +137,24 @@ public static class DependencyInjection
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret)),
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                  OnMessageReceived = ctx =>
+                  {
+
+                    // WebSocket connections pass the token as ?access_token=... in the URL.
+                    // The standard Authorization header doesn't work for WebSockets in browsers.
+                    // The WebSocket protocol does not support custom HTTP headers after the initial handshake
+                      var token = ctx.Request.Query["acess_token"];
+                      var path = ctx.HttpContext.Request.Path;
+                      if(!string.IsNullOrEmpty(token) && path.StartsWithSegments("/hubs"))
+                      {
+                          ctx.Token = token;
+                      }
+                      return Task.CompletedTask;
+                  }  
                 };
             })
             .AddCookie(IdentityConstants.ExternalScheme)

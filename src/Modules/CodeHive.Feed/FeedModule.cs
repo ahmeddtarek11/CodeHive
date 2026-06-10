@@ -26,9 +26,12 @@ public static class FeedModule
     public static IEndpointRouteBuilder MapFeedEndpoints(this IEndpointRouteBuilder app)
     {
         var feed = app.MapGroup("/api/v1/feed").WithTags("Feed");
-        feed.MapGet("", GetFeed).RequireAuthorization();
-        feed.MapGet("/discover", GetDiscoverFeed).AllowAnonymous();
-        feed.MapGet("/trending", GetTrendingPosts).AllowAnonymous();
+        feed.MapGet("", GetFeed).RequireAuthorization()
+            .WithSummary("Get personalized feed").WithDescription("Retrieves a paginated timeline of posts from followed users.");
+        feed.MapGet("/discover", GetDiscoverFeed).AllowAnonymous()
+            .WithSummary("Get discover feed").WithDescription("Retrieves a paginated list of top/recent posts across the platform.");
+        feed.MapGet("/trending", GetTrendingPosts).AllowAnonymous()
+            .WithSummary("Get trending posts").WithDescription("Retrieves a list of currently trending posts.");
 
         return app;
     }

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using CodeHive.Shared.Events;
 using CodeHive.Shared.Notifications;
 using MassTransit;
-using MassTransit.Mediator;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeHive.Infrastructure.Messaging.Consumers.Users;

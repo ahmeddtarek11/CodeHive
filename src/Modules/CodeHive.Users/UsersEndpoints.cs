@@ -30,22 +30,36 @@ public static class UsersEndpoints
     public static IEndpointRouteBuilder MapUsersEndpoints(this IEndpointRouteBuilder app)
     {
         var auth = app.MapGroup("/api/v1/auth").WithTags("Auth").RequireRateLimiting("auth");
-        auth.MapPost("/register", Register).AllowAnonymous();
-        auth.MapPost("/login", Login).AllowAnonymous();
-        auth.MapPost("/refresh", Refresh).AllowAnonymous();
-        auth.MapGet("/login/google", GoogleLogin).AllowAnonymous();
-        auth.MapGet("/oauth/google/callback", GoogleAuth).AllowAnonymous();
-        auth.MapGet("/login/github", GitHubLogin).AllowAnonymous();
-        auth.MapGet("/oauth/github/callback", GitHubAuth).AllowAnonymous();
+        auth.MapPost("/register", Register).AllowAnonymous()
+            .WithSummary("Register a new user").WithDescription("Creates a new user account.");
+        auth.MapPost("/login", Login).AllowAnonymous()
+            .WithSummary("Login").WithDescription("Authenticates a user and returns a JWT token.");
+        auth.MapPost("/refresh", Refresh).AllowAnonymous()
+            .WithSummary("Refresh token").WithDescription("Refreshes an expired JWT token using a refresh token.");
+        auth.MapGet("/login/google", GoogleLogin).AllowAnonymous()
+            .WithSummary("Google Login").WithDescription("Initiates Google OAuth flow.");
+        auth.MapGet("/oauth/google/callback", GoogleAuth).AllowAnonymous()
+            .WithSummary("Google Callback").WithDescription("Handles Google OAuth callback.");
+        auth.MapGet("/login/github", GitHubLogin).AllowAnonymous()
+            .WithSummary("GitHub Login").WithDescription("Initiates GitHub OAuth flow.");
+        auth.MapGet("/oauth/github/callback", GitHubAuth).AllowAnonymous()
+            .WithSummary("GitHub Callback").WithDescription("Handles GitHub OAuth callback.");
 
         var users = app.MapGroup("/api/v1/users").WithTags("Users");
-        users.MapGet("/{username}", GetProfile).AllowAnonymous();
-        users.MapPost("/{id:guid}/follow", Follow).RequireAuthorization();
-        users.MapDelete("/{id:guid}/follow", Unfollow).RequireAuthorization();
-        users.MapGet("/{id:guid}/followers", GetFollowers).AllowAnonymous();
-        users.MapGet("/{id:guid}/following", GetFollowing).AllowAnonymous();
-        users.MapPut("/me", UpdateProfile).RequireAuthorization();
-        users.MapGet("/me/bookmarks", GetBookmarks).RequireAuthorization();
+        users.MapGet("/{username}", GetProfile).AllowAnonymous()
+            .WithSummary("Get user profile").WithDescription("Retrieves the public profile of a user by username.");
+        users.MapPost("/{id:guid}/follow", Follow).RequireAuthorization()
+            .WithSummary("Follow a user").WithDescription("Follows another user by their ID.");
+        users.MapDelete("/{id:guid}/follow", Unfollow).RequireAuthorization()
+            .WithSummary("Unfollow a user").WithDescription("Unfollows a previously followed user.");
+        users.MapGet("/{id:guid}/followers", GetFollowers).AllowAnonymous()
+            .WithSummary("Get followers").WithDescription("Retrieves a paginated list of followers for a user.");
+        users.MapGet("/{id:guid}/following", GetFollowing).AllowAnonymous()
+            .WithSummary("Get following").WithDescription("Retrieves a paginated list of users that a user follows.");
+        users.MapPut("/me", UpdateProfile).RequireAuthorization()
+            .WithSummary("Update profile").WithDescription("Updates the profile of the currently authenticated user.");
+        users.MapGet("/me/bookmarks", GetBookmarks).RequireAuthorization()
+            .WithSummary("Get bookmarks").WithDescription("Retrieves a paginated list of bookmarked posts for the current user.");
 
         return app;
     }

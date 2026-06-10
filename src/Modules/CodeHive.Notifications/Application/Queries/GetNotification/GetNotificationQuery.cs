@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CodeHive.Notifications.Application.Dtos;
 using CodeHive.Shared;
 using CodeHive.Shared.Cqrs;
+using CodeHive.Shared.Notifications.Dtos;
 
 namespace CodeHive.Notifications.Application.Queries;
 

@@ -25,9 +25,12 @@ public static class SearchModule
     {
         var search = app.MapGroup("/api/v1/search").WithTags("Search");
 
-        search.MapGet("/posts", SearchPosts).AllowAnonymous();
-        search.MapGet("/users", SearchUsers).AllowAnonymous();
-        search.MapGet("/tags", SearchTags).AllowAnonymous();
+        search.MapGet("/posts", SearchPosts).AllowAnonymous()
+            .WithSummary("Search posts").WithDescription("Searches for posts based on a query string.");
+        search.MapGet("/users", SearchUsers).AllowAnonymous()
+            .WithSummary("Search users").WithDescription("Searches for users based on a query string.");
+        search.MapGet("/tags", SearchTags).AllowAnonymous()
+            .WithSummary("Search tags").WithDescription("Searches for tags based on a query string.");
 
         return app;
     }

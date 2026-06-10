@@ -50,47 +50,77 @@ public sealed class GetDiscoverFeedQueryHandler : IQueryHandler<GetDiscoverFeedQ
             query = query.Where(post => post.CreatedAt < cursor.Value);
         }
 
-        var rows = await query
+        // Phase 1: fetch flat rows (post + author only) ordered by CreatedAt in SQL.
+        // The full PostSummaryDto projection (with tag/like/comment subqueries) is done
+        // AFTER ToListAsync so EF never tries to translate it.
+        var flatRows = await query
+            .Where(p => !p.IsDeleted)
             .Join(
                 _dbContext.Users.AsNoTracking(),
-                post => post.AuthorId,
+                post   => post.AuthorId,
                 author => author.Id,
-                (post, author) => new DiscoverFeedRow(
-                    new PostSummaryDto(
-                        post.Id,
-                        author.UserName!,
-                        author.AvatarUrl,
-                        post.Title,
-                        post.Content.Length > 200
-                            ? post.Content.Substring(0, 200)
-                            : post.Content,
-                        _dbContext.Set<PostTag>().AsNoTracking()
-                            .Where(postTag => postTag.PostId == post.Id)
-                            .Join(
-                                _dbContext.Set<Tag>().AsNoTracking(),
-                                postTag => postTag.TagId,
-                                tag => tag.Id,
-                                (_, tag) => tag.Name)
-                            .OrderBy(tagName => tagName)
-                            .ToArray(),
-                        _dbContext.Set<PostLike>().AsNoTracking().Count(postLike => postLike.PostId == post.Id),
-                        _dbContext.Set<Comment>().AsNoTracking().Count(comment => comment.PostId == post.Id),
-                        post.CreatedAt),
-                    post.CreatedAt))
-            .OrderByDescending(row => row.CreatedAt)
+                (post, author) => new
+                {
+                    post.Id,
+                    post.AuthorId,
+                    post.Title,
+                    post.Content,
+                    post.CreatedAt,
+                    AuthorUsername = author.UserName!,
+                    author.AvatarUrl
+                })
+            .OrderByDescending(r => r.CreatedAt)
             .Take(request.Limit + 1)
             .ToListAsync(cancellationToken);
 
-        var hasMore = rows.Count > request.Limit;
-        var pageItems = rows.Take(request.Limit).ToList();
-        var nextCursor = hasMore && pageItems.Count > 0
-            ? pageItems[^1].CreatedAt.ToString("O")
+        var hasMore  = flatRows.Count > request.Limit;
+        var pageRows = flatRows.Take(request.Limit).ToList();
+
+        // Phase 2: enrich each row in memory with tags, like counts, comment counts.
+        var postIds = pageRows.Select(r => r.Id).ToList();
+
+        var tagsByPost = await _dbContext.Set<PostTag>().AsNoTracking()
+            .Where(pt => postIds.Contains(pt.PostId))
+            .Join(
+                _dbContext.Set<Tag>().AsNoTracking(),
+                pt  => pt.TagId,
+                tag => tag.Id,
+                (pt, tag) => new { pt.PostId, tag.Name })
+            .ToListAsync(cancellationToken);
+
+        var likesByPost = await _dbContext.Set<PostLike>().AsNoTracking()
+            .Where(pl => postIds.Contains(pl.PostId))
+            .GroupBy(pl => pl.PostId)
+            .Select(g => new { PostId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var commentsByPost = await _dbContext.Set<Comment>().AsNoTracking()
+            .Where(c => !c.IsDeleted && postIds.Contains(c.PostId))
+            .GroupBy(c => c.PostId)
+            .Select(g => new { PostId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var tagsLookup    = tagsByPost.ToLookup(x => x.PostId, x => x.Name);
+        var likesLookup   = likesByPost.ToDictionary(x => x.PostId, x => x.Count);
+        var commentsLookup = commentsByPost.ToDictionary(x => x.PostId, x => x.Count);
+
+        var dtos = pageRows.Select(r => new PostSummaryDto(
+            r.Id,
+            r.AuthorUsername,
+            r.AvatarUrl,
+            r.Title,
+            r.Content.Length > 200 ? r.Content[..200] : r.Content,
+            tagsLookup[r.Id].OrderBy(t => t).ToArray(),
+            likesLookup.GetValueOrDefault(r.Id),
+            commentsLookup.GetValueOrDefault(r.Id),
+            r.CreatedAt
+        )).ToList();
+
+        var nextCursor = hasMore && dtos.Count > 0
+            ? pageRows[^1].CreatedAt.ToString("O")
             : null;
 
-        return new CursorPage<PostSummaryDto>(
-            pageItems.Select(row => row.Post).ToList(),
-            nextCursor,
-            hasMore);
+        return new CursorPage<PostSummaryDto>(dtos, nextCursor, hasMore);
     }
 
     private static DateTime? ParseCursor(string? cursor)

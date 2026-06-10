@@ -31,19 +31,31 @@ public static class PostsEndpoints
 
         var comments = posts.MapGroup("/{postId:guid}/comments");
 
-        posts.MapGet("", ListPosts).AllowAnonymous();
-        posts.MapGet("/{id:guid}", GetPost).AllowAnonymous();
-        posts.MapPost("", CreatePost).RequireAuthorization();
-        posts.MapPut("/{id:guid}", UpdatePost).RequireAuthorization();
-        posts.MapDelete("/{id:guid}", DeletePost).RequireAuthorization();
-        posts.MapPost("/{id:guid}/like", LikePost).RequireAuthorization();
-        posts.MapDelete("/{id:guid}/like", UnlikePost).RequireAuthorization();
-        posts.MapPost("/{id:guid}/bookmark", BookmarkPost).RequireAuthorization();
-        posts.MapDelete("/{id:guid}/bookmark", RemoveBookmark).RequireAuthorization();
+        posts.MapGet("", ListPosts).AllowAnonymous()
+            .WithSummary("List posts").WithDescription("Retrieves a paginated list of posts, optionally filtered by author.");
+        posts.MapGet("/{id:guid}", GetPost).AllowAnonymous()
+            .WithSummary("Get post").WithDescription("Retrieves a specific post by its ID.");
+        posts.MapPost("", CreatePost).RequireAuthorization()
+            .WithSummary("Create post").WithDescription("Creates a new post.");
+        posts.MapPut("/{id:guid}", UpdatePost).RequireAuthorization()
+            .WithSummary("Update post").WithDescription("Updates an existing post.");
+        posts.MapDelete("/{id:guid}", DeletePost).RequireAuthorization()
+            .WithSummary("Delete post").WithDescription("Deletes a post.");
+        posts.MapPost("/{id:guid}/like", LikePost).RequireAuthorization()
+            .WithSummary("Like post").WithDescription("Adds a like to a post.");
+        posts.MapDelete("/{id:guid}/like", UnlikePost).RequireAuthorization()
+            .WithSummary("Unlike post").WithDescription("Removes a like from a post.");
+        posts.MapPost("/{id:guid}/bookmark", BookmarkPost).RequireAuthorization()
+            .WithSummary("Bookmark post").WithDescription("Bookmarks a post for the current user.");
+        posts.MapDelete("/{id:guid}/bookmark", RemoveBookmark).RequireAuthorization()
+            .WithSummary("Remove bookmark").WithDescription("Removes a post from the current user's bookmarks.");
 
-        comments.MapGet("", GetComments).AllowAnonymous();
-        comments.MapPost("", AddComment).RequireAuthorization();
-        comments.MapDelete("/{commentId:guid}", DeleteComment).RequireAuthorization();
+        comments.MapGet("", GetComments).AllowAnonymous()
+            .WithSummary("Get comments").WithDescription("Retrieves a paginated list of comments for a post.");
+        comments.MapPost("", AddComment).RequireAuthorization()
+            .WithSummary("Add comment").WithDescription("Adds a comment to a post.");
+        comments.MapDelete("/{commentId:guid}", DeleteComment).RequireAuthorization()
+            .WithSummary("Delete comment").WithDescription("Deletes a comment from a post.");
 
         return app;
     }

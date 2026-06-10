@@ -6,9 +6,10 @@ using CodeHive.Infrastructure.Data;
 using CodeHive.Shared.Events;
 using CodeHive.Shared.Notifications;
 using MassTransit;
-using MassTransit.Mediator;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace CodeHive.Infrastructure.Messaging.Consumers.Posts;
 
@@ -27,12 +28,14 @@ public class PostCreatedConsumer : IConsumer<IPostCreatedEvent>
     {
         var msg = context.Message;
         using var scope = _scopeFactory.CreateScope();
+        
+        var logger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PostCreatedConsumer>>();
+        logger.LogInformation("PostCreatedConsumer received event for Post {PostId} by User {UserId}", msg.PostId, msg.AuthorId);
+
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
         var db = scope.ServiceProvider.GetRequiredService<CodeHiveDbContext>();
 
-
-
-         // Get all follower IDs for this author
+        // Get all follower IDs for this author
         var followerIds = await db.Database
             .SqlQuery<Guid>(
                 $"""
@@ -42,17 +45,20 @@ public class PostCreatedConsumer : IConsumer<IPostCreatedEvent>
                 """)
             .ToListAsync();
 
-             foreach (var followerId in followerIds)
+        logger.LogInformation("PostCreatedConsumer found {Count} followers to notify", followerIds.Count);
+
+        foreach (var followerId in followerIds)
         {
+            logger.LogInformation("PostCreatedConsumer sending CreateNotificationCommand for Follower {FollowerId}", followerId);
             await mediator.Send(new CreateNotificationCommand(
-                RecipientId:  followerId,
-                Type:         NotificationType.NewPost,
-                ActorId:      msg.AuthorId,
+                RecipientId: followerId,
+                Type: NotificationType.NewPost,
+                ActorId: msg.AuthorId,
                 ActorUsername: msg.AuthorUsername,
                 RelatedPostId: msg.PostId
             ), context.CancellationToken);
         }
-
-
+        
+        logger.LogInformation("PostCreatedConsumer successfully processed {Count} notifications", followerIds.Count);
     }
 }

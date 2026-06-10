@@ -1,6 +1,6 @@
 using CodeHive.Shared.Notifications;
 
-namespace CodeHive.Notifications.Application.Dtos;
+namespace CodeHive.Shared.Notifications.Dtos;
 
 public record NotificationDto(
     Guid Id,

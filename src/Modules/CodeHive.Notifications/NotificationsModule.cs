@@ -3,6 +3,7 @@ using System.Security.Claims;
 using CodeHive.Notifications.Application.Commands.MarkRead;
 using CodeHive.Notifications.Application.Queries;
 using CodeHive.Notifications.Application.Queries.GetUnreadCount;
+using CodeHive.Notifications.Application.SignalR;
 using CodeHive.Shared.Extensions;
 using CodeHive.Shared.Responses;
 using FluentValidation;
@@ -18,6 +19,13 @@ public static class NotificationsModule
 {
     public static IServiceCollection AddNotificationsModule(this IServiceCollection services)
     {
+
+        services.AddSignalR()
+            .AddJsonProtocol(options => 
+            {
+                options.PayloadSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+            });
+        services.AddScoped<INotificationHubService ,NotificationHubService>();
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(NotificationsModule).Assembly));
         services.AddValidatorsFromAssembly(typeof(NotificationsModule).Assembly);
         return services;
@@ -29,10 +37,14 @@ public static class NotificationsModule
             .WithTags("Notifications")
             .RequireAuthorization();
 
-        notifications.MapGet("",GetNotifications);
-        notifications.MapGet("/unread-count", GetUnreadCount);
-        notifications.MapPatch("/{id:guid}/read", MarkNotificationRead);
-        notifications.MapPatch("/read-all",   MarkAllNotificationsRead);
+        notifications.MapGet("",GetNotifications)
+            .WithSummary("Get notifications").WithDescription("Retrieves a paginated list of notifications for the current user.");
+        notifications.MapGet("/unread-count", GetUnreadCount)
+            .WithSummary("Get unread count").WithDescription("Retrieves the count of unread notifications for the current user.");
+        notifications.MapPatch("/{id:guid}/read", MarkNotificationRead)
+            .WithSummary("Mark as read").WithDescription("Marks a specific notification as read.");
+        notifications.MapPatch("/read-all",   MarkAllNotificationsRead)
+            .WithSummary("Mark all as read").WithDescription("Marks all unread notifications as read.");
 
         return app;
     }

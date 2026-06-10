@@ -1,7 +1,7 @@
 using CodeHive.Infrastructure.Data;
-using CodeHive.Notifications.Application.Dtos;
 using CodeHive.Shared;
 using CodeHive.Shared.Cqrs;
+using CodeHive.Shared.Notifications.Dtos;
 using Microsoft.EntityFrameworkCore;
 using NotificationEntity = CodeHive.Notification.Domain.Entities.Notification;
 

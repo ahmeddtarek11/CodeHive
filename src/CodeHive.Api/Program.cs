@@ -21,16 +21,47 @@ using Microsoft.OpenApi;
 using CodeHive.Api;
 using CodeHive.Chat;
 using CodeHive.Chat.SignalR;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Serilog
 builder.Host.UseSerilog((ctx, cfg) =>
-    cfg.ReadFrom.Configuration(ctx.Configuration)
-       .Enrich.FromLogContext()
-       .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-       .WriteTo.File("logs/CodeHive.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 7));
+    cfg.ReadFrom.Configuration(builder.Configuration));
+//    .Enrich.FromLogContext()
+//    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+//    .WriteTo.File("logs/CodeHive.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 7));
+
+var resourceBuilder = ResourceBuilder.CreateDefault().AddService("CodeHive.Api");
+builder.Services.AddOpenTelemetry().WithTracing(tracing =>
+{
+    tracing.SetResourceBuilder(resourceBuilder)
+               .AddAspNetCoreInstrumentation()
+               .AddHttpClientInstrumentation()
+               .AddEntityFrameworkCoreInstrumentation();
+
+              tracing.AddOtlpExporter(opt =>
+        {
+            // If API is running on localhost (outside docker).
+            opt.Endpoint = new Uri("http://localhost:5341/ingest/otlp/v1/traces");
+            opt.Protocol = OtlpExportProtocol.HttpProtobuf;
+        });
+}).WithMetrics(metrics =>
+    {
+        metrics.SetResourceBuilder(resourceBuilder)
+               .AddAspNetCoreInstrumentation()
+               .AddHttpClientInstrumentation()
+               .AddRuntimeInstrumentation() // CPU, Memory, GC metrics
+               .AddProcessInstrumentation();
+               
+        // Exposes an endpoint (/metrics) that Prometheus will scrape
+        metrics.AddPrometheusExporter(); 
+    });
+
 
 
 // infrastructure: JWT auth + token service (DbContext, Identity, Redis, MassTransit later)
@@ -62,7 +93,6 @@ builder.Services.AddMediatR(cfg =>
 });
 
 // API concerns — BearerSecuritySchemeTransformer adds the JWT security scheme
-// using the Microsoft.OpenApi v2 API that ships with .NET 9/10
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
@@ -73,6 +103,8 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =
 {
     options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
+
+
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -89,11 +121,16 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+
+app.UseSerilogRequestLogging();
+// Expose the Prometheus scraping endpoint (typically at /metrics)
+app.MapPrometheusScrapingEndpoint();
 
 
 app.MapHub<NotificationHub>("/hubs/notifications");
@@ -117,7 +154,7 @@ app.MapScalarApiReference(options =>
     {
         PreferredSecuritySchemes = ["Bearer"]
     };
-        options.AddHttpAuthentication("Bearer", _ => { });
+    options.AddHttpAuthentication("Bearer", _ => { });
 });
 
 app.Run();

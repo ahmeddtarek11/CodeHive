@@ -10,7 +10,7 @@ This project was built from the ground up to demonstrate modern backend engineer
 - **Connections**: Follow other developers and curate your feed.
 - **Search**: Quickly find relevant posts and users.
 
-## 🛠 Tech Stack & Architecture
+##  Tech Stack & Architecture
 The backend is structured as a **Modular Monolith** applying **Clean Architecture** and **Domain-Driven Design (DDD)** principles to keep boundaries strict and the codebase highly maintainable.
 
 **Core Frameworks:**

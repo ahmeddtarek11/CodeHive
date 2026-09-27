@@ -46,6 +46,9 @@ public static class UsersEndpoints
             .WithSummary("GitHub Callback").WithDescription("Handles GitHub OAuth callback.");
 
         var users = app.MapGroup("/api/v1/users").WithTags("Users");
+        users.MapGet("/me", GetCurrentProfile).RequireAuthorization()
+            .WithSummary("Get the current user's profile")
+            .WithDescription("Retrieves the complete profile for the authenticated user.");
         users.MapGet("/{username}", GetProfile).AllowAnonymous()
             .WithSummary("Get user profile").WithDescription("Retrieves the public profile of a user by username.");
         users.MapPost("/{id:guid}/follow", Follow).RequireAuthorization()
@@ -160,6 +163,25 @@ public static class UsersEndpoints
 
         return Results.Ok(
             ApiResponseFactory.Success("Profile fetched successfully", result.Value));
+    }
+
+    private static async Task<IResult> GetCurrentProfile(
+        ClaimsPrincipal user,
+        UserManager<ApplicationUser> userManager,
+        IMediator mediator)
+    {
+        if (!TryGetUserId(user, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var currentUser = await userManager.FindByIdAsync(userId.ToString());
+        if (string.IsNullOrWhiteSpace(currentUser?.UserName))
+        {
+            return Results.NotFound();
+        }
+
+        return await GetProfile(currentUser.UserName, mediator);
     }
 
     private static async Task<IResult> UpdateProfile(
@@ -338,4 +360,3 @@ public static class UsersEndpoints
 
 
 }
-

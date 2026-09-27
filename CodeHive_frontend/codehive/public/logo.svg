@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80" fill="none">
+  <!-- Honeycomb geometric cluster -->
+  <g transform="translate(10, 10)">
+    <!-- Hexagon 1 (Top Left) -->
+    <polygon points="30,5 45,14 45,31 30,40 15,31 15,14" stroke="#F59E0B" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <!-- Hexagon 2 (Top Right) -->
+    <polygon points="55,14 70,23 70,40 55,49 40,40 40,23" stroke="#F59E0B" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <!-- Hexagon 3 (Bottom Right) -->
+    <polygon points="50,45 65,54 65,71 50,80 35,71 35,54" stroke="#F59E0B" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" fill="none" transform="translate(5, -12)"/>
+    <!-- Hexagon 4 (Bottom Left) -->
+    <polygon points="25,48 40,57 40,74 25,83 10,74 10,57" stroke="#F59E0B" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" fill="none" transform="translate(-2, -14)"/>
+    <!-- Hexagon 5 (Far Left) -->
+    <polygon points="12,28 25,35 25,50 12,57 0,50 0,35" stroke="#F59E0B" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" fill="none" transform="translate(2, -2)"/>
+  </g>
+  
+  <!-- CodeHive Wordmark -->
+  <text x="100" y="52" font-family="Inter, -apple-system, sans-serif" font-size="36" font-weight="700" fill="#191c1d" letter-spacing="-0.5">Code<tspan fill="#F59E0B">Hive</tspan></text>
+</svg>

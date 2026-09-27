@@ -69,7 +69,12 @@ public static class ChatModule
         if (!TryGetUserId(user, out var userId)) return Results.Unauthorized();
         
         var result = await mediator.Send(new StartConversationCommand(userId, req.TargetUserId));
-        return result.ToApiResult();
+        if (result.IsFailure) return result.ToApiResult();
+
+        return Results.Ok(
+            ApiResponseFactory.Success(
+                "Conversation ready",
+                new { conversationId = result.Value }));
     }
 
     private static async Task<IResult> GetConversations(

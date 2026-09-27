@@ -8,7 +8,7 @@ namespace CodeHive.Shared.Interfaces.Identity;
 
 public interface ITokenService
 {
-    AccessToken  GenerateAccessToken(Guid UserId , string email , IEnumerable<string>  roles);
+    AccessToken GenerateAccessToken(Guid userId, string email, string username, IEnumerable<string> roles);
 
     RefreshToken CreateRefreshToken();
 

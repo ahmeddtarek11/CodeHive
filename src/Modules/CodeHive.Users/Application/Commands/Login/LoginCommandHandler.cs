@@ -63,7 +63,11 @@ public sealed class LoginCommandHandler : ICommandHandler<LoginCommand, AuthToke
         }
 
         var roles = await _userManager.GetRolesAsync(user);
-        var accessToken = _tokenService.GenerateAccessToken(user.Id, user.Email ?? email, roles);
+        var accessToken = _tokenService.GenerateAccessToken(
+            user.Id,
+            user.Email ?? email,
+            user.UserName ?? email,
+            roles);
         var refreshToken = _tokenService.CreateRefreshToken();
         var refreshTokenHash = HashRefreshToken(refreshToken.Value);
 

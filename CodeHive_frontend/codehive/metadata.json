@@ -1,0 +1,6 @@
+{
+  "name": "CodeHive",
+  "description": "A developer-focused social platform combining editorial engineering deep dives with community social feeds.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -97,7 +97,11 @@ public sealed class RefreshTokenCommandHandler : ICommandHandler<RefreshTokenCom
         currentToken.IsRevoked = true;
 
         var roles = await _userManager.GetRolesAsync(user);
-        var accessToken = _tokenService.GenerateAccessToken(user.Id, user.Email ?? string.Empty, roles);
+        var accessToken = _tokenService.GenerateAccessToken(
+            user.Id,
+            user.Email ?? string.Empty,
+            user.UserName ?? string.Empty,
+            roles);
         var newRefreshToken = _tokenService.CreateRefreshToken();
 
         var newToken = new RefreshTokenEntity

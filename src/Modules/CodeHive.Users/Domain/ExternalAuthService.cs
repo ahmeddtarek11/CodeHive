@@ -69,7 +69,11 @@ public class ExternalAuthService : IExternalAuthService
         var UserRoles = await   _userManager.GetRolesAsync(user);
 
 
-        var accessToken = _tokenService.GenerateAccessToken(user.Id ,user.Email! , UserRoles);
+        var accessToken = _tokenService.GenerateAccessToken(
+            user.Id,
+            user.Email!,
+            user.UserName ?? user.Email!,
+            UserRoles);
         var refreshToken = _tokenService.CreateRefreshToken();
         
         _dbContext.Set<RefreshTokenEntity>().Add(new RefreshTokenEntity

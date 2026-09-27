@@ -29,6 +29,24 @@ using OpenTelemetry.Metrics;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// CORS — allow the React frontend dev server and production URL
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        var frontendUrl = builder.Configuration["OAuth:FrontendCallbackUrl"] ?? "http://localhost:3000";
+        // Strip path to get just the origin
+        if (Uri.TryCreate(frontendUrl, UriKind.Absolute, out var uri))
+            frontendUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+
+        policy
+            .WithOrigins("http://localhost:3000", frontendUrl)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();  // Required for SignalR + cookies
+    });
+});
+
 // Serilog
 builder.Host.UseSerilog((ctx, cfg) =>
     cfg.ReadFrom.Configuration(builder.Configuration));
@@ -123,6 +141,7 @@ var app = builder.Build();
 
 
 app.UseExceptionHandler();
+app.UseCors("Frontend");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

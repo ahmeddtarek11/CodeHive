@@ -12,7 +12,7 @@ public class TokenService(IOptions<JwtSettings> settings) : ITokenService
 {
     private readonly JwtSettings _settings = settings.Value;
 
-    public AccessToken GenerateAccessToken(Guid userId, string email, IEnumerable<string> roles)
+    public AccessToken GenerateAccessToken(Guid userId, string email, string username, IEnumerable<string> roles)
     {
         var expiresAt = DateTime.UtcNow.AddMinutes(_settings.AccessTokenMinutes);
 
@@ -20,6 +20,7 @@ public class TokenService(IOptions<JwtSettings> settings) : ITokenService
         {
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new(JwtRegisteredClaimNames.Email, email),
+            new(JwtRegisteredClaimNames.UniqueName, username),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));

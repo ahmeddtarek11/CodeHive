@@ -82,7 +82,7 @@ public sealed class LoginCommandHandlerTests
             .Returns(true);
         _userManager.GetRolesAsync(user)
             .Returns(new List<string> { "User" });
-        _tokenService.GenerateAccessToken(user.Id, user.Email!, Arg.Any<IEnumerable<string>>())
+        _tokenService.GenerateAccessToken(user.Id, user.Email!, user.UserName!, Arg.Any<IEnumerable<string>>())
             .Returns(expectedAccessToken);
         _tokenService.CreateRefreshToken()
             .Returns(expectedRefreshToken);

@@ -4,7 +4,7 @@
 
 This project was built from the ground up to demonstrate modern backend engineering practices, focusing on scalability, observability, and robust software architecture. 
 
-## 🚀 Key Features
+##  Key Features
 - **Developer-Centric Social Feed**: Share text posts, technical blogs, and snippets.
 - **Real-Time Chat & Notifications**: Instant messaging and live in-app notifications powered by SignalR.
 - **Connections**: Follow other developers and curate your feed.
@@ -35,7 +35,7 @@ The backend is structured as a **Modular Monolith** applying **Clean Architectur
 - **OpenTelemetry**: Distributed tracing across RabbitMQ and HTTP boundaries.
 - **Prometheus & Grafana**: Time-series metrics collection and visual performance dashboards.
 
-## 🏃‍♂️ Getting Started
+##  Getting Started
 
 ### Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)

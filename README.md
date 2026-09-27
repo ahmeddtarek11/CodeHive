@@ -4,15 +4,13 @@
 
 This project was built from the ground up to demonstrate modern backend engineering practices, focusing on scalability, observability, and robust software architecture.
 
-## 🚀 Key Features
-
+##  Key Features
 - **Developer-Centric Social Feed**: Share text posts, technical blogs, and snippets.
 - **Real-Time Chat & Notifications**: Instant messaging and live in-app notifications powered by SignalR.
 - **Connections**: Follow other developers and curate your feed.
 - **Search**: Quickly find relevant posts and users.
 
-## 🛠 Tech Stack & Architecture
-
+##  Tech Stack & Architecture
 The backend is structured as a **Modular Monolith** applying **Clean Architecture** and **Domain-Driven Design (DDD)** principles to keep boundaries strict and the codebase highly maintainable.
 
 **Core Frameworks:**
@@ -41,7 +39,7 @@ The backend is structured as a **Modular Monolith** applying **Clean Architectur
 - **OpenTelemetry**: Distributed tracing across RabbitMQ and HTTP boundaries.
 - **Prometheus & Grafana**: Time-series metrics collection and visual performance dashboards.
 
-## 🏃‍♂️ Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -51,7 +49,7 @@ The backend is structured as a **Modular Monolith** applying **Clean Architectur
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/CodeHive.git
+git clone https://github.com/ahmeddtarek11/CodeHive.git
 cd CodeHive
 ```
 

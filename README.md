@@ -43,7 +43,7 @@ The backend is structured as a **Modular Monolith** applying **Clean Architectur
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/CodeHive.git
+git clone https://github.com/ahmeddtarek11/CodeHive.git
 cd CodeHive
 ```
 
